@@ -22,12 +22,14 @@ namespace Client
     public partial class MainWindow : Window
     {
         private HubConnection _connection;
-        private string uri;
+        private string _uri;
+        private string _userName;
+        
         public MainWindow()
         {
             InitializeComponent();
-            uri = "http://localhost:63847" + "/chathub";
-            _connection = new HubConnectionBuilder().WithUrl(uri).Build();
+            _uri = "http://localhost:63847" + "/chathub";
+            _connection = new HubConnectionBuilder().WithUrl(_uri).Build();
             _connection.Closed += async (error) =>
             {
                 await Task.Delay(5000);
@@ -41,14 +43,7 @@ namespace Client
                 {
                     Dispatcher?.BeginInvoke(new Action(() => { tbMain.Content = connectionId; }));
                 });
-            _connection.On<string>("Posted", value =>
-            {
-                Dispatcher?.BeginInvoke(new Action(() =>
-                {
-                    messagesList.Items.Add(value);
-                }));
-            });
-
+            
             _connection.On<string, string>("ReceiveMessage", (user, message) => { messagesList.Items.Add($"{user} сказал {message}"); });
             try
             {
@@ -66,9 +61,9 @@ namespace Client
         {
             try
             {
-                await _connection.SendAsync("ReceiveMessage", "TestNick", MessageBox.Text);
+                await _connection.InvokeCoreAsync("SendMessage", new []{NickBox.Text, MessageBox.Text});
+
                 Console.WriteLine(MessageBox.Text);
-                //messagesList.Items.Add("ConnectionStarted");
             }
             catch (Exception ex)
             {

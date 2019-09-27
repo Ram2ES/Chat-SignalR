@@ -13,24 +13,12 @@ namespace Server.Controllers
     [ApiController]
     public class ChatHubController : ControllerBase
     {
-        // GET: api/ChatHub
-        [HttpGet]
-        public IEnumerable<string> Get()
-        {
-            return new string[] { "value1", "value2" };
-        }
-
+        
         private IHubContext<ChatHub> _hubContext;
 
         public ChatHubController(IHubContext<ChatHub> hubContext)
         {
             _hubContext = hubContext;
-        }
-
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-            _hubContext.Clients.All.SendAsync("Posted", value);
         }
     }
 }

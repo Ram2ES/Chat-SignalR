@@ -12,6 +12,7 @@
         <Label x:Name ="tbMain" Content="Label" HorizontalAlignment="Left" Margin="10,256,0,0" VerticalAlignment="Top"/>
         <Button Content="Button" HorizontalAlignment="Left" Margin="707,279,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click_1"/>
         <TextBox x:Name ="MessageBox" HorizontalAlignment="Left" Height="23" Margin="552,279,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name ="NickBox" HorizontalAlignment="Left" Height="23" Margin="408,276,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
 
     </Grid>
 </Window>
