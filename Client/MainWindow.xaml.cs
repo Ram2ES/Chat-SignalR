@@ -37,7 +37,10 @@ namespace Client
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            _connection.On<string>("Connected", connectionId => { tbMain.Content = connectionId; });
+            _connection.On<string>("Connected", connectionId =>
+                {
+                    Dispatcher?.BeginInvoke(new Action(() => { tbMain.Content = connectionId; }));
+                });
             _connection.On<string>("Posted", value =>
             {
                 Dispatcher?.BeginInvoke(new Action(() =>
@@ -45,11 +48,27 @@ namespace Client
                     messagesList.Items.Add(value);
                 }));
             });
+
+            _connection.On<string, string>("ReceiveMessage", (user, message) => { messagesList.Items.Add($"{user} сказал {message}"); });
             try
             {
                 await _connection.StartAsync();
                 messagesList.Items.Add("ConnectionStarted");
                 //enablebutton = false;
+            }
+            catch (Exception ex)
+            {
+                messagesList.Items.Add(ex.Message);
+            }
+        }
+
+        private async void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await _connection.SendAsync("ReceiveMessage", "TestNick", MessageBox.Text);
+                Console.WriteLine(MessageBox.Text);
+                //messagesList.Items.Add("ConnectionStarted");
             }
             catch (Exception ex)
             {
