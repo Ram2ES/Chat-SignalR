@@ -5,9 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800"
+        DataContext="{Binding RelativeSource = {RelativeSource Self}}">
+    
     <Grid>
-        <ListBox x:Name="messagesList" HorizontalAlignment="Left" Height="237" Margin="10,10,0,0" VerticalAlignment="Top" Width="772"/>
+        <ListBox x:Name="messagesList" HorizontalAlignment="Left" Height="237" Margin="10,10,0,0" VerticalAlignment="Top" Width="772" ItemsSource="{Binding Messages}"/>
         <Button Content="Button" HorizontalAlignment="Left" Margin="707,252,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click"/>
         <Label x:Name ="tbMain" Content="Label" HorizontalAlignment="Left" Margin="10,256,0,0" VerticalAlignment="Top"/>
         <Button Content="Button" HorizontalAlignment="Left" Margin="707,279,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click_1"/>
