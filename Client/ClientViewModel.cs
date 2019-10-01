@@ -92,7 +92,27 @@ namespace Client
             }
         }
 
+        private List<string> _serverList;
 
+        public List<string> ServerList
+        {
+            get { return _serverList; }
+            set
+            {
+                _serverList = value;
+                OnPropertyChanged(nameof(ServerList));
+            }
+        }
+
+
+        public string SelectedServer { get; set; }
+
+        public ClientViewModel()
+        {
+            XmlWorker qwe = new XmlWorker();
+            qwe.Execute();
+            ServerList = qwe.ReadDocument();
+        }
 
         public async void OnConnectionButton()
         {
@@ -141,23 +161,18 @@ namespace Client
 
         }
 
-        private List<string> _serverList;
-        public List<string> ServerList
+        public async void SendMessage()
         {
-            get { return _serverList; }
-            set
+            try
             {
-                _serverList = value;
-                OnPropertyChanged(nameof(ServerList));
+                var txt = string.Copy(Text);
+                await Connection.SendCoreAsync(Api.SendMessage, new[] { Nickname, txt });
+                Text = "";
             }
-        }
-        public string SelectedServer { get; set; }
-
-        public ClientViewModel()
-        {
-            XmlWorker qwe = new XmlWorker();
-            qwe.Execute();
-            ServerList = qwe.ReadDocument();
+            catch (Exception e)
+            {
+                OnReceiveMessage("Server", e.Message);
+            }
         }
 
         private void OnReceiveMessage(string name, string message)
@@ -204,20 +219,6 @@ namespace Client
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        public async void SendMessage()
-        {
-            try
-            {
-                var txt = string.Copy(Text);
-                await Connection.SendCoreAsync(Api.SendMessage, new[] { Nickname, txt });
-                Text = "";
-            }
-            catch (Exception e)
-            {
-                OnReceiveMessage("Server", e.Message);
-            }
         }
     }
 }

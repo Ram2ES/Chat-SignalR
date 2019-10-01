@@ -42,9 +42,7 @@ namespace Server.Hubs
 
         public async Task GetUsers()
         {
-            var result = new List<string>();
-            _users.ForEach(u => result.Add(u.Name));
-            await Clients.All.SendAsync(Api.GetUsers, result);
+            await Clients.All.SendAsync(Api.GetUsers, new List<string>(_users.Select(u => u.Name)));
         }
 
 
