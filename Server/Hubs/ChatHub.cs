@@ -20,8 +20,6 @@ namespace Server.Hubs
 
     public class ChatHub : Hub
     {
-        //private int i = 1;
-
         private static List<User> _users = new List<User>();
         public override Task OnConnectedAsync()
         {

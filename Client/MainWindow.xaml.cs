@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,9 +28,8 @@ namespace Client
         public MainWindow()
         {
             InitializeComponent();
-
             DataContext = _clientVM;
-
+            _clientVM.Messages.CollectionChanged += ScrollGrid;
         }
 
 
@@ -41,6 +41,19 @@ namespace Client
         private async void Button_Click_1(object sender, RoutedEventArgs e)
         {
            _clientVM.SendMessage();
+        }
+
+        private async void MessageBox_KeyUp(object sender, KeyEventArgs e)
+        {
+            if(_clientVM.IsOnline && e.Key == Key.Enter) _clientVM.SendMessage();
+        }
+
+        private void ScrollGrid(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (VisualTreeHelper.GetChild(MessagesList, 0) is Decorator border)
+            {
+                if (border.Child is ScrollViewer scroll) scroll.ScrollToEnd();
+            }
         }
     }
 }

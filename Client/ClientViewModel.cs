@@ -1,9 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows.Documents;
+using System.Windows.Media;
+using Microsoft.AspNetCore.SignalR.Client;
 using Model;
 
 namespace Client
@@ -11,7 +15,8 @@ namespace Client
     public class ClientViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-        public ObservableCollection<Message> Messages { get; } = new ObservableCollection<Message>() { new Message("sdf", "qweqweqwe") };
+        public HubConnection Connection;
+        public ObservableCollection<Message> Messages { get; } = new ObservableCollection<Message>();
         private ObservableCollection<string> _users;
 
         public ObservableCollection<string> Users
@@ -24,9 +29,17 @@ namespace Client
             }
         }
 
-        private ServerModel _serverModel = new ServerModel();
         public string Nickname { get; set; }
-        public string Text { get; set; }
+
+        private string _text = "";
+        public string Text { 
+            get => _text;
+            set
+            {
+                _text = value;
+                OnPropertyChanged(nameof(Text));
+            }
+        }
 
         private bool _isOffline = true;
         public bool IsOffline
@@ -36,7 +49,12 @@ namespace Client
             {
                 _isOffline = value;
                 OnPropertyChanged(nameof(IsOffline));
+                OnPropertyChanged(nameof(IsOnline));
             }
+        }
+        public bool IsOnline
+        {
+            get => !_isOffline;
         }
 
         private string _status = "Offline";
@@ -50,23 +68,49 @@ namespace Client
             }
         }
 
-        public void Connect()
+        private Brush _statusColor = Brushes.Black;
+
+        public Brush StatusColor
         {
-            _serverModel.Connect();
+            get => _statusColor;
+            set
+            {
+                _statusColor = value;
+                OnPropertyChanged(nameof(StatusColor));
+            }
+        }
+
+        private string _uri;
+        public async void Connect()
+        {
+            try
+            {
+                await Connection.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                OnReceiveMessage("Server", ex.ToString()); //messagesList.Items.Add(ex.Message);
+            }
         }
 
         public ClientViewModel()
         {
-            _serverModel.OnConnected = OnConnected;
-            _serverModel.OnSetName = OnSetName;
-            _serverModel.OnGetUsers = OnGetUsers;
-            _serverModel.OnReceiveMessage = OnReceiveMessage;
+            _uri = "http://localhost:63847" + "/chathub";
+            Connection = new HubConnectionBuilder().WithUrl(_uri).Build();
+            Connection.Closed += async (error) =>
+            {
+                await Task.Delay(5000);
+                await Connection.StartAsync();
+            };
+            Connection.On(Api.Connected, OnConnected);
+            Connection.On<string, string>(Api.ReceiveMessage, OnReceiveMessage);
+            Connection.On<List<string>>(Api.GetUsers, OnGetUsers);
+            Connection.On<bool>(Api.SetName, OnSetName);
         }
 
         private void OnReceiveMessage(string name, string message)
         {
             Messages.Add(new Message(name, message));
-            
         }
 
         private void OnGetUsers(List<string> users)
@@ -74,25 +118,34 @@ namespace Client
             Users = new ObservableCollection<string>(users);
         }
 
-        private void OnSetName(bool isSet)
+        private async void OnSetName(bool isSet)
         {
             if (isSet)
             {
                 Status = "Online";
+                StatusColor = Brushes.LimeGreen;
                 IsOffline = false;
-                _serverModel.GetUsers();
+                await Connection.InvokeAsync(Api.GetUsers);
             }
             else
             {
                 Status = "Человек с таким именем уже есть!";
+                StatusColor = Brushes.Red;
                 IsOffline = true;
-                _serverModel.Disconnect();
+                await Connection.DisposeAsync();
             }
         }
 
-        private void OnConnected()
+        private async void OnConnected()
         {
-            _serverModel.SetNick(Nickname);
+            try
+            {
+                await Connection.InvokeCoreAsync<string>(Api.SetName, new[] { Nickname });
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
@@ -100,9 +153,18 @@ namespace Client
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public void SendMessage()
+        public async void SendMessage()
         {
-            _serverModel.SendMessage(Nickname, Text);
+            try
+            {
+                var txt = string.Copy(Text);
+                await Connection.SendCoreAsync(Api.SendMessage, new[] { Nickname, txt });
+                Text = "";
+            }
+            catch (Exception e)
+            {
+                OnReceiveMessage("Server", e.Message);
+            }
         }
     }
 }
