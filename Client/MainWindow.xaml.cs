@@ -35,7 +35,7 @@ namespace Client
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            _clientVM.Connect();
+            _clientVM.OnConnectionButton();
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
@@ -43,9 +43,12 @@ namespace Client
            _clientVM.SendMessage();
         }
 
-        private async void MessageBox_KeyUp(object sender, KeyEventArgs e)
+        private async void MessageBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if(_clientVM.IsOnline && e.Key == Key.Enter) _clientVM.SendMessage();
+            if (_clientVM.IsOnline && e.Key == Key.Enter)
+            {
+                _clientVM.SendMessage();
+            }
         }
 
         private void ScrollGrid(object sender, NotifyCollectionChangedEventArgs e)

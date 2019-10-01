@@ -8,10 +8,10 @@
         Title="MainWindow" Height="344.256" Width="800">
 
     <Grid>
-        <Button Content="Подключиться" HorizontalAlignment="Left" Margin="135,10,0,0" VerticalAlignment="Top" Width="86" Click="Button_Click" IsEnabled="{Binding IsOffline}"/>
-        <Label x:Name ="ConnectionStatus" Content="{Binding Status}" HorizontalAlignment="Left" Margin="226,8,0,0" VerticalAlignment="Top" Height="24" Width="326" Foreground="{Binding StatusColor}" FontWeight="Bold"/>
+        <Button Content="{Binding ConnectionButtonText}" HorizontalAlignment="Left" Margin="365,10,0,0" VerticalAlignment="Top" Width="86" Click="Button_Click" Height="22"/>
+        <Label x:Name ="ConnectionStatus" Content="{Binding Status}" HorizontalAlignment="Left" Margin="456,8,0,0" VerticalAlignment="Top" Height="24" Width="326" Foreground="{Binding StatusColor}" FontWeight="Bold"/>
         <Button Content="Отправить" HorizontalAlignment="Left" Margin="532,280,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click_1" IsEnabled="{Binding IsOnline}" />
-        <TextBox x:Name ="MessageBox" HorizontalAlignment="Left" Height="23" Margin="10,280,0,0" TextWrapping="Wrap" Text="{Binding Text}" VerticalAlignment="Top" Width="517" KeyDown="MessageBox_KeyUp" IsEnabled="{Binding IsOnline}"/>
+        <TextBox x:Name ="MessageBox" HorizontalAlignment="Left" Height="23" Margin="10,280,0,0" TextWrapping="Wrap" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="517" KeyDown="MessageBox_KeyDown" IsEnabled="{Binding IsOnline}" />
         <TextBox x:Name ="NickBox" HorizontalAlignment="Left" Height="23" Margin="10,10,0,0" TextWrapping="Wrap" Text="{Binding Nickname}" VerticalAlignment="Top" Width="120" IsEnabled="{Binding IsOffline}"/>
         <ListBox HorizontalAlignment="Left" Height="222" Margin="631,53,0,0" VerticalAlignment="Top" Width="151" ItemsSource="{Binding Users}"/>
         <ListBox x:Name="MessagesList" HorizontalAlignment="Left" Height="222" Margin="8,53,0,0" VerticalAlignment="Top" Width="599"  ItemsSource="{Binding Messages}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectedIndex="{Binding SelectedIndex}">
@@ -30,6 +30,7 @@
             </ListBox.ItemTemplate>
            
         </ListBox>
+        <ComboBox HorizontalAlignment="Left" Margin="135,10,0,0" VerticalAlignment="Top" Width="225" ItemsSource="{Binding ServerList}" SelectedItem="{Binding SelectedServer}" IsEnabled="{Binding IsOffline}" />
 
     </Grid>
 </Window>

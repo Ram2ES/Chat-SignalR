@@ -17,8 +17,8 @@ namespace Client
         public event PropertyChangedEventHandler PropertyChanged;
         public HubConnection Connection;
         public ObservableCollection<Message> Messages { get; } = new ObservableCollection<Message>();
-        private ObservableCollection<string> _users;
 
+        private ObservableCollection<string> _users;
         public ObservableCollection<string> Users
         {
             get => _users;
@@ -32,7 +32,8 @@ namespace Client
         public string Nickname { get; set; }
 
         private string _text = "";
-        public string Text { 
+        public string Text
+        {
             get => _text;
             set
             {
@@ -69,7 +70,6 @@ namespace Client
         }
 
         private Brush _statusColor = Brushes.Black;
-
         public Brush StatusColor
         {
             get => _statusColor;
@@ -80,9 +80,39 @@ namespace Client
             }
         }
 
-        private string _uri;
+        private string _connectionButtonText = "Подключиться";
+
+        public string ConnectionButtonText
+        {
+            get => _connectionButtonText;
+            private set
+            {
+                _connectionButtonText = value;
+                OnPropertyChanged(nameof(ConnectionButtonText));
+            }
+        }
+
+
+
+        public async void OnConnectionButton()
+        {
+            if (IsOnline) Disconnect();
+            else Connect();
+        }
+
         public async void Connect()
         {
+            Connection = new HubConnectionBuilder().WithUrl(SelectedServer).Build();
+            Connection.Closed += async (error) =>
+            {
+                await Task.Delay(5000);
+                await Connection.StartAsync();
+            };
+            Connection.On(Api.Connected, OnConnected);
+            Connection.On<string, string>(Api.ReceiveMessage, OnReceiveMessage);
+            Connection.On<List<string>>(Api.GetUsers, OnGetUsers);
+            Connection.On<bool>(Api.SetName, OnSetName);
+
             try
             {
                 await Connection.StartAsync();
@@ -93,19 +123,41 @@ namespace Client
             }
         }
 
+        public async void Disconnect()
+        {
+            ConnectionButtonText = "Подключиться";
+            IsOffline = true;
+            Status = "Offline";
+            StatusColor = Brushes.Black;
+            Messages.Clear();
+            try
+            {
+                await Connection.DisposeAsync();
+            }
+            catch (Exception e)
+            {
+                OnReceiveMessage("Server", e.Message);
+            }
+
+        }
+
+        private List<string> _serverList;
+        public List<string> ServerList
+        {
+            get { return _serverList; }
+            set
+            {
+                _serverList = value;
+                OnPropertyChanged(nameof(ServerList));
+            }
+        }
+        public string SelectedServer { get; set; }
+
         public ClientViewModel()
         {
-            _uri = "http://localhost:63847" + "/chathub";
-            Connection = new HubConnectionBuilder().WithUrl(_uri).Build();
-            Connection.Closed += async (error) =>
-            {
-                await Task.Delay(5000);
-                await Connection.StartAsync();
-            };
-            Connection.On(Api.Connected, OnConnected);
-            Connection.On<string, string>(Api.ReceiveMessage, OnReceiveMessage);
-            Connection.On<List<string>>(Api.GetUsers, OnGetUsers);
-            Connection.On<bool>(Api.SetName, OnSetName);
+            XmlWorker qwe = new XmlWorker();
+            qwe.Execute();
+            ServerList = qwe.ReadDocument();
         }
 
         private void OnReceiveMessage(string name, string message)
@@ -132,19 +184,20 @@ namespace Client
                 Status = "Человек с таким именем уже есть!";
                 StatusColor = Brushes.Red;
                 IsOffline = true;
-                await Connection.DisposeAsync();
+                Disconnect();
             }
         }
 
         private async void OnConnected()
         {
+            ConnectionButtonText = "Отключиться";
             try
             {
                 await Connection.InvokeCoreAsync<string>(Api.SetName, new[] { Nickname });
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                OnReceiveMessage("Server", e.Message);
             }
         }
 
