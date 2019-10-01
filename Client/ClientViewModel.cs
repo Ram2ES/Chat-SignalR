@@ -110,7 +110,6 @@ namespace Client
         public ClientViewModel()
         {
             XmlWorker qwe = new XmlWorker();
-            qwe.Execute();
             ServerList = qwe.ReadDocument();
         }
 

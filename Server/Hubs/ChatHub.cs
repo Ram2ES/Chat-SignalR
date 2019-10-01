@@ -48,7 +48,7 @@ namespace Server.Hubs
 
         public async Task SetName(string username)
         {
-            if (_users.FirstOrDefault(u => u.Name == username) != null)
+            if (_users.Any(u => u.Name == username))
                 await Clients.Caller.SendAsync(Api.SetName, false);
             else
             {

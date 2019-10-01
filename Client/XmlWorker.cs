@@ -10,7 +10,7 @@ namespace Client
 {
     public class XmlWorker
     {
-        public void Execute()
+        public XmlWorker()
         {
             XmlDocument xd = new XmlDocument();
             try
