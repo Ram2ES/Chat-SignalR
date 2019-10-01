@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Microsoft.AspNetCore.SignalR.Client;
+using Model;
 
 namespace Client
 {
@@ -22,42 +23,24 @@ namespace Client
     /// </summary>
     public partial class MainWindow : Window
     {
-        public ObservableCollection<string> Messages { get; } = new ObservableCollection<string>();
-        public ServerModel Server;
-        public Model Model;
+        private ClientViewModel _clientVM = new ClientViewModel(); 
         public MainWindow()
         {
             InitializeComponent();
-            Model = new Model("asdasd");
+
+            DataContext = _clientVM;
+
         }
 
-        public void SetMethods()
-        {
-//            Server.OnConnected = connectionId =>
-//            {
-//                Dispatcher?.BeginInvoke(new Action(() => { tbMain.Content = connectionId; }));
-//            };
-
-            //Server.OnReceiveMessage = (user, message) => { Messages.Add($"{user} сказал {message}"); };
-        }
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            SetMethods();
+            _clientVM.Connect();
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                await _connection.InvokeCoreAsync("SendMessage", new []{NickBox.Text, MessageBox.Text});
-
-                Console.WriteLine(MessageBox.Text);
-            }
-            catch (Exception ex)
-            {
-                messagesList.Items.Add(ex.Message);
-            }
+           _clientVM.SendMessage();
         }
     }
 }

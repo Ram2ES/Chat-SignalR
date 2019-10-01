@@ -5,16 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
-        DataContext="{Binding RelativeSource = {RelativeSource Self}}">
-    
+        Title="MainWindow" Height="344.256" Width="800">
+
     <Grid>
-        <ListBox x:Name="messagesList" HorizontalAlignment="Left" Height="237" Margin="10,10,0,0" VerticalAlignment="Top" Width="772" ItemsSource="{Binding Messages}"/>
-        <Button Content="Button" HorizontalAlignment="Left" Margin="707,252,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click"/>
-        <Label x:Name ="tbMain" Content="Label" HorizontalAlignment="Left" Margin="10,256,0,0" VerticalAlignment="Top"/>
-        <Button Content="Button" HorizontalAlignment="Left" Margin="707,279,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click_1"/>
-        <TextBox x:Name ="MessageBox" HorizontalAlignment="Left" Height="23" Margin="552,279,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
-        <TextBox x:Name ="NickBox" HorizontalAlignment="Left" Height="23" Margin="408,276,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
+        <ListBox x:Name="messagesList" HorizontalAlignment="Left" Height="237" Margin="8,38,0,0" VerticalAlignment="Top" Width="599" ItemsSource="{Binding Messages}"/>
+        <Button Content="Подключиться" HorizontalAlignment="Left" Margin="135,11,0,0" VerticalAlignment="Top" Width="86" Click="Button_Click" IsEnabled="{Binding IsOffline}"/>
+        <Label x:Name ="ConnectionStatus" Content="{Binding Status}" HorizontalAlignment="Left" Margin="241,9,0,0" VerticalAlignment="Top" Height="24" Width="93"/>
+        <Button Content="Отправить" HorizontalAlignment="Left" Margin="532,280,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click_1"/>
+        <TextBox x:Name ="MessageBox" HorizontalAlignment="Left" Height="23" Margin="10,280,0,0" TextWrapping="Wrap" Text="{Binding Text}" VerticalAlignment="Top" Width="517"/>
+        <TextBox x:Name ="NickBox" HorizontalAlignment="Left" Height="23" Margin="10,10,0,0" TextWrapping="Wrap" Text="{Binding Nickname}" VerticalAlignment="Top" Width="120" IsEnabled="{Binding IsOffline}"/>
+        <ListBox HorizontalAlignment="Left" Height="237" Margin="631,38,0,0" VerticalAlignment="Top" Width="151" ItemsSource="{Binding Users}"/>
 
     </Grid>
 </Window>

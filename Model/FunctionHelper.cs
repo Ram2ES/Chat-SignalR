@@ -7,5 +7,6 @@
         public const string ReceiveMessage = "ReceiveMessage";
         public const string SendMessage = "SendMessage";
         public const string GetUsers = "GetUsers";
+        public const string SetNameResult = "SetNameResult";
     }
 }
