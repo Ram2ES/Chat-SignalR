@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -104,7 +105,6 @@ namespace Client
             }
         }
 
-
         public string SelectedServer { get; set; }
 
         public ClientViewModel()
@@ -121,16 +121,31 @@ namespace Client
 
         public async void Connect()
         {
+            if (string.IsNullOrEmpty(Nickname))
+            {
+                MessageBox.Show("Имя не может быть пустым");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(SelectedServer))
+            {
+                MessageBox.Show("Нужно выбрать сервер");
+                return;
+            }
+
             Connection = new HubConnectionBuilder().WithUrl(SelectedServer).Build();
             Connection.Closed += async (error) =>
             {
                 await Task.Delay(5000);
                 await Connection.StartAsync();
             };
-            Connection.On(Api.Connected, OnConnected);
-            Connection.On<string, string>(Api.ReceiveMessage, OnReceiveMessage);
-            Connection.On<List<string>>(Api.GetUsers, OnGetUsers);
-            Connection.On<bool>(Api.SetName, OnSetName);
+
+            Connection.On(nameof(IChatHub.Connected), OnConnected);
+            Connection.On<string, string>(nameof(IChatHub.TransferMessage), OnReceiveMessage);
+            Connection.On<List<string>>(nameof(IChatHub.SendAllUsers), OnGetUsers);
+            Connection.On<bool>(nameof(IChatHub.SetNameResult), OnSetName);
+            Connection.On<string>(nameof(IChatHub.UserConnected), OnUserConnected);
+            Connection.On<string>(nameof(IChatHub.UserDisconnected), OnUserDisconnected);
 
             try
             {
@@ -138,17 +153,30 @@ namespace Client
             }
             catch (Exception ex)
             {
-                OnReceiveMessage("Server", ex.ToString()); //messagesList.Items.Add(ex.Message);
+                OnReceiveMessage("Server", ex.Message.ToString());
             }
         }
 
-        public async void Disconnect()
+        private void OnUserDisconnected(string name)
+        {
+            Users.Remove(name);
+        }
+
+        private void OnUserConnected(string name)
+        {
+            Users.Add(name);
+        }
+
+        public async Task Disconnect()
         {
             ConnectionButtonText = "Подключиться";
             IsOffline = true;
             Status = "Offline";
             StatusColor = Brushes.Black;
+
             Messages.Clear();
+            Users.Clear();
+
             try
             {
                 await Connection.DisposeAsync();
@@ -165,7 +193,7 @@ namespace Client
             try
             {
                 var txt = string.Copy(Text);
-                await Connection.SendCoreAsync(Api.SendMessage, new[] { Nickname, txt });
+                await Connection.SendCoreAsync(Api.SendMessage, new object[] { Nickname, txt });
                 Text = "";
             }
             catch (Exception e)
@@ -191,14 +219,22 @@ namespace Client
                 Status = "Online";
                 StatusColor = Brushes.LimeGreen;
                 IsOffline = false;
-                await Connection.InvokeAsync(Api.GetUsers);
             }
             else
             {
                 Status = "Человек с таким именем уже есть!";
                 StatusColor = Brushes.Red;
                 IsOffline = true;
-                Disconnect();
+                ConnectionButtonText = "Подключиться";
+
+                try
+                {
+                    await Connection.DisposeAsync();
+                }
+                catch (Exception e)
+                {
+                    OnReceiveMessage("Server", e.Message);
+                }
             }
         }
 

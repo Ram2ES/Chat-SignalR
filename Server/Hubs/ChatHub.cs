@@ -7,57 +7,59 @@ using Model;
 
 namespace Server.Hubs
 {
-    public class User
+    public class ChatHub : Hub<IChatHub>
     {
-        public string Id;
-        public string Name;
+        private static readonly List<User> _users = new List<User>();
 
-        public User(string id)
-        {
-            Id = id;
-        }
-    }
-
-    public class ChatHub : Hub
-    {
-        private static List<User> _users = new List<User>();
-        public override Task OnConnectedAsync()
+        public override async Task OnConnectedAsync()
         {
             _users.Add(new User(Context.ConnectionId));
-            Clients.Caller.SendAsync(Api.Connected);
-            return base.OnConnectedAsync();
+            //Clients.Caller.SendAsync(Api.Connected);
+            await Clients.Caller.Connected();
+            await base.OnConnectedAsync();
         }
 
         public async Task SendMessage(string user, string message)
         {
-            await Clients.All.SendAsync(Api.ReceiveMessage, user, message);
+            //await Clients.All.SendAsync(Api.ReceiveMessage, user, message);
+            await Clients.All.TransferMessage(user, message);
         }
 
-        public override Task OnDisconnectedAsync(Exception exception)
+        public override async Task OnDisconnectedAsync(Exception exception)
         {
-            _users.Remove(_users.FirstOrDefault(u => u.Id == Context.ConnectionId));
-            GetUsers();
-            return base.OnDisconnectedAsync(exception);
+            var disconnectedUser = _users.FirstOrDefault(u => u.Id == Context.ConnectionId);
+
+            if (disconnectedUser != null)
+            {
+                await Clients.All.UserDisconnected(disconnectedUser.Name);
+                _users.Remove(disconnectedUser);
+            }
+
+            await base.OnDisconnectedAsync(exception);
         }
 
-        public async Task GetUsers()
+        private async Task SendUsersToCaller()
         {
-            await Clients.All.SendAsync(Api.GetUsers, new List<string>(_users.Select(u => u.Name)));
+            //await Clients.All.SendAsync(Api.SendUsersToCaller, new List<string>(_users.Select(u => u.Name)));
+            await Clients.Caller.SendAllUsers(new List<string>(_users.Select(e => e.Name)));
         }
-
 
         public async Task SetName(string username)
         {
             if (_users.Any(u => u.Name == username))
-                await Clients.Caller.SendAsync(Api.SetName, false);
+                //await Clients.Caller.SendAsync(Api.SetName, false);
+                await Clients.Caller.SetNameResult(false);
             else
             {
                 var user = _users.FirstOrDefault(u => u.Id == Context.ConnectionId);
                 if (user != null)
                 {
                     user.Name = username;
-                    await Clients.Caller.SendAsync(Api.SetName, true);
-                    await Clients.All.SendAsync(Api.GetUsers, _users);
+                    await Clients.Caller.SetNameResult(true);
+                    //await Clients.Caller.SendAsync(Api.SetName, true);
+                    await Clients.Others.UserConnected(username);
+                    await SendUsersToCaller();
+                    //await Clients.All.SendAsync(Api.SendUsersToCaller, _users);
                 }
             }
         }
