@@ -7,16 +7,21 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.AspNetCore.SignalR.Client;
 using Model;
 
 namespace Client
 {
-    public class ClientViewModel : INotifyPropertyChanged
+    public partial class ClientViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-        public HubConnection Connection;
+
+        private HubConnection _connection;
+
+        #region Props
+
         public ObservableCollection<Message> Messages { get; } = new ObservableCollection<Message>();
 
         private ObservableCollection<string> _users;
@@ -54,6 +59,7 @@ namespace Client
                 OnPropertyChanged(nameof(IsOnline));
             }
         }
+
         public bool IsOnline
         {
             get => !_isOffline;
@@ -82,7 +88,6 @@ namespace Client
         }
 
         private string _connectionButtonText = "Подключиться";
-
         public string ConnectionButtonText
         {
             get => _connectionButtonText;
@@ -94,10 +99,9 @@ namespace Client
         }
 
         private List<string> _serverList;
-
         public List<string> ServerList
         {
-            get { return _serverList; }
+            get => _serverList;
             set
             {
                 _serverList = value;
@@ -107,19 +111,49 @@ namespace Client
 
         public string SelectedServer { get; set; }
 
+        #endregion
+
         public ClientViewModel()
         {
-            XmlWorker qwe = new XmlWorker();
-            ServerList = qwe.ReadDocument();
+            XmlWorker xmlWorker = new XmlWorker();
+            ServerList = xmlWorker.ReadDocument();
         }
 
-        public async void OnConnectionButton()
+        #region Commands
+
+        public ICommand ConnectionManager
         {
-            if (IsOnline) Disconnect();
-            else Connect();
+            get
+            {
+                return new DelegateCommand(async o =>
+                {
+                    if (IsOnline)
+                        await DisconnectAsync();
+                    else
+                        await ConnectAsync();
+                });
+            }
         }
 
-        public async void Connect()
+        public ICommand SendMessageCommand => new DelegateCommand(async o => await SendMessageAsync());
+
+        #endregion
+
+        private async Task SendMessageAsync()
+        {
+            try
+            {
+                var txt = string.Copy(Text);
+                await _connection.SendCoreAsync(Api.SendMessage, new object[] { Nickname, txt });
+                Text = "";
+            }
+            catch (Exception e)
+            {
+                OnReceiveMessage(Constants.ServerName, e.Message);
+            }
+        }
+
+        private async Task ConnectAsync()
         {
             if (string.IsNullOrEmpty(Nickname))
             {
@@ -133,41 +167,43 @@ namespace Client
                 return;
             }
 
-            Connection = new HubConnectionBuilder().WithUrl(SelectedServer).Build();
-            Connection.Closed += async (error) =>
+            _connection = new HubConnectionBuilder().WithUrl(SelectedServer).Build();
+            _connection.Closed += async (error) =>
             {
                 await Task.Delay(5000);
-                await Connection.StartAsync();
+                await _connection.StartAsync();
             };
 
-            Connection.On(nameof(IChatHub.Connected), OnConnected);
-            Connection.On<string, string>(nameof(IChatHub.TransferMessage), OnReceiveMessage);
-            Connection.On<List<string>>(nameof(IChatHub.SendAllUsers), OnGetUsers);
-            Connection.On<bool>(nameof(IChatHub.SetNameResult), OnSetName);
-            Connection.On<string>(nameof(IChatHub.UserConnected), OnUserConnected);
-            Connection.On<string>(nameof(IChatHub.UserDisconnected), OnUserDisconnected);
+            _connection.On(nameof(IChatHub.Connected), OnConnected);
+            _connection.On<string, string>(nameof(IChatHub.TransferMessage), OnReceiveMessage);
+            _connection.On<List<string>>(nameof(IChatHub.SendAllUsers), OnGetUsers);
+            _connection.On<bool>(nameof(IChatHub.SetNameResult), OnSetName);
+            _connection.On<string>(nameof(IChatHub.UserConnected), OnUserConnected);
+            _connection.On<string>(nameof(IChatHub.UserDisconnected), OnUserDisconnected);
 
             try
             {
-                await Connection.StartAsync();
+                await _connection.StartAsync();
             }
             catch (Exception ex)
             {
-                OnReceiveMessage("Server", ex.Message.ToString());
+                OnReceiveMessage(Constants.ServerName, ex.Message.ToString());
             }
         }
 
         private void OnUserDisconnected(string name)
         {
             Users.Remove(name);
+            OnReceiveMessage(Constants.ServerName, $"{name} тут больше нет :(");
         }
 
         private void OnUserConnected(string name)
         {
             Users.Add(name);
+            OnReceiveMessage(Constants.ServerName, $"{name} теперь с нами!");
         }
 
-        public async Task Disconnect()
+        private async Task DisconnectAsync()
         {
             ConnectionButtonText = "Подключиться";
             IsOffline = true;
@@ -179,27 +215,13 @@ namespace Client
 
             try
             {
-                await Connection.DisposeAsync();
+                await _connection.DisposeAsync();
             }
             catch (Exception e)
             {
-                OnReceiveMessage("Server", e.Message);
+                OnReceiveMessage(Constants.ServerName, e.Message);
             }
 
-        }
-
-        public async void SendMessage()
-        {
-            try
-            {
-                var txt = string.Copy(Text);
-                await Connection.SendCoreAsync(Api.SendMessage, new object[] { Nickname, txt });
-                Text = "";
-            }
-            catch (Exception e)
-            {
-                OnReceiveMessage("Server", e.Message);
-            }
         }
 
         private void OnReceiveMessage(string name, string message)
@@ -229,11 +251,11 @@ namespace Client
 
                 try
                 {
-                    await Connection.DisposeAsync();
+                    await _connection.DisposeAsync();
                 }
                 catch (Exception e)
                 {
-                    OnReceiveMessage("Server", e.Message);
+                    OnReceiveMessage(Constants.ServerName, e.Message);
                 }
             }
         }
@@ -243,7 +265,7 @@ namespace Client
             ConnectionButtonText = "Отключиться";
             try
             {
-                await Connection.InvokeCoreAsync<string>(Api.SetName, new[] { Nickname });
+                await _connection.InvokeCoreAsync<string>(Api.SetName, new[] { Nickname });
             }
             catch (Exception e)
             {

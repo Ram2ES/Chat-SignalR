@@ -24,31 +24,11 @@ namespace Client
     /// </summary>
     public partial class MainWindow : Window
     {
-        private ClientViewModel _clientVM = new ClientViewModel(); 
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = _clientVM;
-            _clientVM.Messages.CollectionChanged += ScrollGrid;
-        }
-
-
-        private async void Button_Click(object sender, RoutedEventArgs e)
-        {
-            _clientVM.OnConnectionButton();
-        }
-
-        private async void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-           _clientVM.SendMessage();
-        }
-
-        private async void MessageBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (_clientVM.IsOnline && e.Key == Key.Enter)
-            {
-                _clientVM.SendMessage();
-            }
+            if (DataContext is ClientViewModel vm)
+                vm.Messages.CollectionChanged += ScrollGrid;
         }
 
         private void ScrollGrid(object sender, NotifyCollectionChangedEventArgs e)
