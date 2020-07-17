@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
@@ -149,7 +150,7 @@ namespace Client
             }
             catch (Exception e)
             {
-                OnReceiveMessage(Constants.ServerName, e.Message);
+                DisplayServerMessage(e.Message);
             }
         }
 
@@ -175,32 +176,39 @@ namespace Client
             };
 
             _connection.On(nameof(IChatHub.Connected), OnConnected);
-            _connection.On<string, string>(nameof(IChatHub.TransferMessage), OnReceiveMessage);
+            _connection.On<string>(nameof(IChatHub.TransferMessage), OnReceiveMessage);
             _connection.On<List<string>>(nameof(IChatHub.SendAllUsers), OnGetUsers);
             _connection.On<bool>(nameof(IChatHub.SetNameResult), OnSetName);
             _connection.On<string>(nameof(IChatHub.UserConnected), OnUserConnected);
             _connection.On<string>(nameof(IChatHub.UserDisconnected), OnUserDisconnected);
+            _connection.On<string>(nameof(IChatHub.SendLastMessages), FillLastMessages);
 
             try
             {
                 await _connection.StartAsync();
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                OnReceiveMessage(Constants.ServerName, ex.Message.ToString());
+                DisplayServerMessage(e.Message);
             }
+        }
+
+        private void FillLastMessages(string messagesJson)
+        {
+            var messages = JsonSerializer.Deserialize<List<Message>>(messagesJson);
+            messages.ForEach(e => Messages.Add(e));
         }
 
         private void OnUserDisconnected(string name)
         {
             Users.Remove(name);
-            OnReceiveMessage(Constants.ServerName, $"{name} тут больше нет :(");
+            DisplayServerMessage($"{name} тут больше нет :(");
         }
 
         private void OnUserConnected(string name)
         {
             Users.Add(name);
-            OnReceiveMessage(Constants.ServerName, $"{name} теперь с нами!");
+            DisplayServerMessage($"{name} теперь с нами!");
         }
 
         private async Task DisconnectAsync()
@@ -219,14 +227,17 @@ namespace Client
             }
             catch (Exception e)
             {
-                OnReceiveMessage(Constants.ServerName, e.Message);
+                DisplayServerMessage(e.Message);
             }
 
         }
 
-        private void OnReceiveMessage(string name, string message)
+        private void OnReceiveMessage(string messageJson)
         {
-            Messages.Add(new Message(name, message));
+            var message = JsonSerializer.Deserialize<Message>(messageJson);
+            message.Time = DateTime.Now;
+
+            Messages.Add(message);
         }
 
         private void OnGetUsers(List<string> users)
@@ -255,7 +266,7 @@ namespace Client
                 }
                 catch (Exception e)
                 {
-                    OnReceiveMessage(Constants.ServerName, e.Message);
+                    DisplayServerMessage(e.Message);
                 }
             }
         }
@@ -269,8 +280,13 @@ namespace Client
             }
             catch (Exception e)
             {
-                OnReceiveMessage("Server", e.Message);
+                DisplayServerMessage(e.Message);
             }
+        }
+
+        private void DisplayServerMessage(string message)
+        {
+            Messages.Add(new Message(Constants.ServerName, message));
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)

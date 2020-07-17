@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Model;
@@ -9,8 +10,9 @@ namespace Server.Hubs
 {
     public class ChatHub : Hub<IChatHub>
     {
+        private const int MessageCacheLengths = 10;
         private static readonly List<User> _users = new List<User>();
-
+        private static readonly Queue<Message> _messages = new Queue<Message>();
         public override async Task OnConnectedAsync()
         {
             _users.Add(new User(Context.ConnectionId));
@@ -20,7 +22,13 @@ namespace Server.Hubs
 
         public async Task SendMessage(string user, string message)
         {
-            await Clients.All.TransferMessage(user, message);
+            var msg = new Message(user, message);
+            _messages.Enqueue(msg);
+            
+            if (_messages.Count >= MessageCacheLengths)
+                _messages.Dequeue();
+            
+            await Clients.All.TransferMessage(JsonSerializer.Serialize(msg));
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
@@ -54,6 +62,7 @@ namespace Server.Hubs
                     await Clients.Caller.SetNameResult(true);
                     await Clients.Others.UserConnected(username);
                     await SendUsersToCaller();
+                    await Clients.Caller.SendLastMessages(JsonSerializer.Serialize(new List<Message>(_messages)));
                 }
             }
         }

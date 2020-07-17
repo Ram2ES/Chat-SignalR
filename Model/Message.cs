@@ -2,11 +2,12 @@
 
 namespace Model
 {
+    [Serializable]
     public class Message
     {
-        public string Text { get; }
-        public string Name{ get; }
-        public DateTime Time { get; }
+        public string Text { get; set; }
+        public string Name{ get; set; }
+        public DateTime Time { get; set; }
 
         public override string ToString()
         {
@@ -19,5 +20,7 @@ namespace Model
             Name = name;
             Time = DateTime.Now;
         }
+
+        public Message() { }
     }
 }
