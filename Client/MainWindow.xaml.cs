@@ -28,10 +28,10 @@ namespace Client
         {
             InitializeComponent();
             if (DataContext is ClientViewModel vm)
-                vm.Messages.CollectionChanged += ScrollGrid;
+                vm.MessageCollectionChanged += ScrollGrid;
         }
 
-        private void ScrollGrid(object sender, NotifyCollectionChangedEventArgs e)
+        private void ScrollGrid()
         {
             if (VisualTreeHelper.GetChild(MessagesList, 0) is Decorator border)
             {

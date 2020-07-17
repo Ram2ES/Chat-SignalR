@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -10,6 +11,7 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.AspNetCore.SignalR.Client;
 using Model;
 
@@ -21,9 +23,30 @@ namespace Client
 
         private HubConnection _connection;
 
+        public event Action MessageCollectionChanged;
+
         #region Props
 
-        public ObservableCollection<Message> Messages { get; } = new ObservableCollection<Message>();
+        private ObservableCollection<Message> _messages;
+
+        public ObservableCollection<Message> Messages
+        {
+            get => _messages;
+            set
+            {
+                if(_messages != null)
+                    _messages.CollectionChanged -= OnMessageCollectionChanged;
+
+                _messages = value;
+                _messages.CollectionChanged += OnMessageCollectionChanged;
+                OnPropertyChanged(nameof(Messages));
+            }
+        }
+
+        private void OnMessageCollectionChanged(object obj, NotifyCollectionChangedEventArgs e)
+        {
+            MessageCollectionChanged?.Invoke();
+        }
 
         private ObservableCollection<string> _users;
         public ObservableCollection<string> Users
@@ -171,8 +194,13 @@ namespace Client
             _connection = new HubConnectionBuilder().WithUrl(SelectedServer).Build();
             _connection.Closed += async (error) =>
             {
-                await Task.Delay(5000);
-                await _connection.StartAsync();
+                if (error != null)
+                {
+                    ConnectionButtonText = "Подключиться";
+                    IsOffline = true;
+                    Status = "Соединение потеряно";
+                    StatusColor = Brushes.Red;
+                }
             };
 
             _connection.On(nameof(IChatHub.Connected), OnConnected);
@@ -189,14 +217,14 @@ namespace Client
             }
             catch (Exception e)
             {
-                DisplayServerMessage(e.Message);
+                DisplayServerMessage(e.Message + "\n" + e.InnerException?.Message);
             }
         }
 
         private void FillLastMessages(string messagesJson)
         {
             var messages = JsonSerializer.Deserialize<List<Message>>(messagesJson);
-            messages.ForEach(e => Messages.Add(e));
+            Messages = new ObservableCollection<Message>(messages);
         }
 
         private void OnUserDisconnected(string name)
